@@ -1,0 +1,10 @@
+.tools/
+.downloads/
+.nuget/
+.dotnet-home/
+artifacts/
+runtime/
+**/bin/
+**/obj/
+native/vendor/
+*.user

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><title>造梦工坊 · 输入验证页</title>
+<style>*{box-sizing:border-box}body{margin:0;padding:40px;background:#f7f9fc;color:#233043;font:15px/1.7 'Microsoft YaHei UI',sans-serif}small{color:#406fe2;letter-spacing:2px}h1{font-size:30px;margin:10px 0}p{color:#708092}.cards{display:flex;gap:14px;margin:24px 0}.card{flex:1;padding:20px;background:white;border:1px solid #e1e7f0;border-radius:12px}.value{font-size:38px;color:#406fe2}button{background:#406fe2;color:white;border:0;border-radius:10px;padding:18px 28px;font:inherit;cursor:pointer}#log{margin-top:20px;background:#edf2fa;padding:14px;border-radius:12px;color:#586c87;height:150px;overflow:auto}.note{border-left:3px solid #406fe2;padding:8px 16px;margin-top:20px}#timing{font-variant-numeric:tabular-nums}</style>
+<small>ZMXY LAB / KEYBOARD CHECK</small><h1>按设置顺序，逐行执行。</h1><p>在左侧设置“按键 · 间隔 · 启用”，按 F7 开始或停止。此页不会改动游戏存档。</p>
+<div class="cards"><div class="card">键盘按下<div id="keys" class="value">0</div></div><div class="card">最近按键<div id="last" class="value">—</div></div><div class="card">按键仍按住<div id="held" class="value">0</div></div></div>
+<button id="target">点击这里测试手动输入</button><p>仅循环启用行；间隔为释放本行按键后的等待时间。F8 停止全部连点并恢复 1×。</p>
+<div class="note">执行顺序：<span id="sequence">等待输入…</span></div>
+<div class="note" id="focus">焦点检查…</div><div class="note" id="timing">正在采样页面响应…</div><div id="log">等待输入…</div>
+<div class="note" style="display:flex;gap:20px;flex-wrap:wrap"><a id="link-self" href="https://www.4399.com/">普通链接</a><a id="link-blank" href="https://www.4399.com/" target="_blank">新窗口链接</a><a id="link-other" href="https://example.org/">外部网站</a><button id="link-script" onclick="window.open('https://www.4399.com/')">脚本打开链接</button></div>
+<script>
+let keys=0,previous=0,maxHeld=0,blurCount=0,dirty=true,responsePending=false;const held=new Set(),frames=[],responses=[],entries=[],events=[],sequence=[],focusEvents=[];
+window.addEventListener('blur',()=>{blurCount++;focusEvents.push({type:'blur',time:performance.now()})});window.addEventListener('focus',()=>focusEvents.push({type:'focus',time:performance.now()}));
+function boundedPush(list,value){list.push(value);if(list.length>180)list.shift()}
+function p95(list){if(!list.length)return null;const sorted=list.slice().sort((a,b)=>a-b);return Math.round(sorted[Math.floor((sorted.length-1)*.95)]*10)/10}
+function log(s){entries.unshift(s);entries.length=Math.min(entries.length,40);dirty=true}
+function response(){if(responsePending)return;responsePending=true;const start=performance.now();requestAnimationFrame(()=>{boundedPush(responses,performance.now()-start);responsePending=false})}
+function frame(now){if(previous&&!document.hidden&&now-previous<100)boundedPush(frames,now-previous);previous=now;if(dirty){dirty=false;document.querySelector('#keys').textContent=keys;document.querySelector('#held').textContent=held.size;document.querySelector('#last').textContent=sequence[sequence.length-1]||'—';document.querySelector('#sequence').textContent=sequence.join(' → ')||'等待输入…';document.querySelector('#log').textContent=entries.join('\n')||'等待输入…';document.querySelector('#log').style.whiteSpace='pre-line'}requestAnimationFrame(frame)}requestAnimationFrame(frame);
+function keyName(e){return e.keyCode===32?'空格':e.keyCode>=65&&e.keyCode<=90?String.fromCharCode(e.keyCode):(e.code||e.key||String(e.keyCode))}
+function record(type,e){events.push({type,key:e.keyCode,time:e.timeStamp,receivedAt:performance.now()});if(events.length>500)events.shift()}
+document.addEventListener('keydown',e=>{e.preventDefault();keys++;held.add(e.keyCode);maxHeld=Math.max(maxHeld,held.size);record('down',e);sequence.push(keyName(e));if(sequence.length>18)sequence.shift();log(e.timeStamp.toFixed(1)+' ms · 按下 '+keyName(e));response()});
+document.addEventListener('keyup',e=>{held.delete(e.keyCode);record('up',e);log(e.timeStamp.toFixed(1)+' ms · 释放 '+keyName(e))});
+window.testState=()=>({keys,held:held.size,maxHeld,events,hasFocus:document.hasFocus(),blurCount,activeElement:document.activeElement?.id,focusEvents,visibility:document.visibilityState,timing:{frameP95:p95(frames),eventToFrameP95:p95(responses),samples:responses.length}});
+setInterval(()=>{document.querySelector('#focus').textContent='页面焦点：'+(document.hasFocus()?'已获得':'已失去')+' · 失焦次数：'+blurCount+' · 焦点元素：'+(document.activeElement?.id||document.activeElement?.tagName)},100);
+setInterval(()=>{document.querySelector('#timing').textContent='页面帧间隔 P95：'+(p95(frames)??'—')+' ms　·　收到输入到下一帧 P95：'+(p95(responses)??'—')+' ms（不含硬件与操作系统传输耗时）'},500);
+</script></html>
