@@ -4,6 +4,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -11,6 +12,49 @@ namespace ZmxyDemo {
  internal static class IntegrationTests {
   static async Task<JObject> Probe(GameSession session){for(int i=0;i<80;i++){try{var r=await session.RequestAsync("probe");var value=(string)r.Data["state"];if(!String.IsNullOrEmpty(value)&&value!="null"){var state=JObject.Parse(value);state["dispatch"]=r.Data["dispatch"];state["muted"]=r.Data["muted"];state["externalLinks"]=r.Data["externalLinks"];return state;}}catch(Exception){}await Task.Delay(150);}throw new Exception("Local test page failed to load");}
   static async Task<JObject> Until(GameSession session,Func<JObject,bool> condition){for(int i=0;i<120;i++){var state=await Probe(session);if(condition(state))return state;await Task.Delay(20);}throw new Exception("Timed out waiting for keyboard input");}
+
+  static async Task CheckDigitKeysAsync(MainForm form,GameSession freshPage,List<object> results,Action<bool,string> check){
+   var bindings=new List<(int Key,string Code,int Location,string Digit,string Label)>();
+   for(int digit=0;digit<=9;digit++){
+    bindings.Add(((int)Keys.D0+digit,"Digit"+digit,0,digit.ToString(),digit.ToString()));
+    bindings.Add(((int)Keys.NumPad0+digit,"Numpad"+digit,3,digit.ToString(),"小键盘 "+digit));
+   }
+   var steps=new List<KeyboardStep>();
+   bool captured=true;
+   using(var box=new KeyCaptureBox()){
+    const int wmKeyDown=0x0100;
+    foreach(var binding in bindings){
+     var message=System.Windows.Forms.Message.Create(box.Handle,wmKeyDown,new IntPtr(binding.Key),new IntPtr(1));
+     box.PreProcessMessage(ref message);
+     captured &= box.KeyCode==binding.Key && box.Text==binding.Label;
+     steps.Add(new KeyboardStep{Key=box.KeyCode,IntervalMs=12});
+    }
+   }
+   check(captured,"key capture distinguishes and labels all numpad and top-row digits");
+   form.SetKeyboardSteps(steps);
+   check(form.SharedKeyboardSteps.Select(row=>row.Key).SequenceEqual(bindings.Select(b=>b.Key)),
+         "the shared keyboard list retains both digit bindings");
+
+   await form.ToggleInputAsync();
+   try{
+    await Until(freshPage,state=>((JArray)state["events"]).Count>=bindings.Count*2);
+   }finally{
+    await freshPage.StopAsync();
+   }
+   var stopped=await Until(freshPage,state=>(int)state["held"]==0);
+   var events=((JArray)stopped["events"]).Take(bindings.Count*2).ToArray();
+   results.Add(new{digitKeyEvents=events});
+   bool match=events.Length==bindings.Count*2;
+   for(int i=0;i<events.Length;i++){
+    var expected=bindings[i/2];
+    var received=events[i];
+    match &= (string)received["type"]==(i%2==0?"down":"up") && (int)received["key"]==expected.Key
+          && (string)received["code"]==expected.Code && (int)received["location"]==expected.Location
+          && (string)received["value"]==expected.Digit;
+   }
+   check(match,"browser receives down and up for Digit0-9 and Numpad0-9 with their distinct codes and locations");
+  }
+
   public static async Task RunAsync(MainForm form){var results=new List<object>();
    Action<bool,string> check=(ok,name)=>{results.Add(new{name,ok});if(!ok)throw new Exception(name);};
    try{
@@ -60,6 +104,7 @@ namespace ZmxyDemo {
     check(!await form.CloseSessionAsync(a)&&form.Sessions.Contains(a),"page A cannot be closed");
     await form.SelectSessionAsync(b);check(await form.CloseSessionAsync(b)&&form.Active==a&&form.Sessions.Count==1,"closing active page returns to page A");
     var reopened=await form.AddSessionAsync();await Probe(reopened);check(reopened.Name=="B"&&(bool)(await Probe(reopened))["muted"],"closed page slot reopens cleanly and remains muted");
+    await CheckDigitKeysAsync(form,reopened,results,check);
     var c=await form.AddSessionAsync();await Probe(c);check(c.Name=="C","new page names remain unique");
     check(await form.CloseSessionAsync(reopened)&&form.Active==c,"closing background page preserves current page");
     var reused=await form.AddSessionAsync();await Probe(reused);check(reused.Name=="B"&&form.Sessions.Select(s=>s.Name).Distinct().Count()==form.Sessions.Count,"free page slot is reused without duplicate names");

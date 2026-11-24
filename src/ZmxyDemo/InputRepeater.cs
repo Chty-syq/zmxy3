@@ -19,7 +19,9 @@ namespace ZmxyDemo
         readonly SemaphoreSlim lifecycle=new SemaphoreSlim(1,1);
         sealed class Stamp {public long Time;public bool Up;public int Key;}
         readonly ConcurrentQueue<Stamp> timing=new ConcurrentQueue<Stamp>();string timerMode="idle";
-        [DllImport("user32.dll")] static extern uint MapVirtualKey(uint code,uint type);
+        const uint MapVirtualKeyToExtendedScanCode = 4; // MAPVK_VK_TO_VSC_EX
+        [DllImport("user32.dll", EntryPoint = "MapVirtualKeyW")]
+        static extern uint MapVirtualKey(uint code, uint mapType);
         public bool IsRunning => cancellation!=null;
         public InputRepeater(ChromiumWebBrowser browser) { this.browser=browser; }
         public async Task StartAsync(IEnumerable<KeyboardStep> configuredSteps) {
@@ -52,9 +54,17 @@ namespace ZmxyDemo
             if(browser.IsDisposed||!browser.IsBrowserInitialized) return;
             try {
                 var host=browser.GetBrowser().GetHost();
-                uint extended=key>=37&&key<=40?0x01000000u:0;
                 if(Program.IsolatedTest){timing.Enqueue(new Stamp{Time=Stopwatch.GetTimestamp(),Up=up,Key=key});if(timing.Count>2048)timing.TryDequeue(out _);}
-                host.SendKeyEvent(new KeyEvent { WindowsKeyCode=key, NativeKeyCode=unchecked((int)((MapVirtualKey((uint)key,0)<<16)|1u|extended|(up?0xc0000000u:0u))), Type=up?KeyEventType.KeyUp:KeyEventType.RawKeyDown, FocusOnEditableField=false });
+                host.SendKeyEvent(new KeyEvent {
+                    WindowsKeyCode = key,
+                    // CEF 84 looks up the physical key using the scan code, including its E0/E1 prefix.
+                    NativeKeyCode = (int)MapVirtualKey((uint)key, MapVirtualKeyToExtendedScanCode),
+                    Modifiers = KeyboardStep.IsNumpadDigit(key)
+                        ? CefEventFlags.IsKeyPad | CefEventFlags.NumLockOn
+                        : CefEventFlags.None,
+                    Type = up ? KeyEventType.KeyUp : KeyEventType.RawKeyDown,
+                    FocusOnEditableField = false
+                });
             } catch(ObjectDisposedException) {} catch(InvalidOperationException) {}
         }
         internal object TimingSnapshot(){

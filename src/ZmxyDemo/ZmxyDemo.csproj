@@ -10,7 +10,7 @@
     <Product>造梦工坊</Product>
     <Title>造梦工坊</Title>
     <Description>造梦西游 3 游戏工作台</Description>
-    <Version>0.6.0</Version>
+    <Version>0.6.1</Version>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <StartupObject>ZmxyDemo.Program</StartupObject>

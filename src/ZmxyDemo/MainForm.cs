@@ -143,7 +143,7 @@ namespace ZmxyDemo {
    using(var help=new Form{Text="使用说明 · 造梦工坊",ClientSize=new Size(450,442),FormBorderStyle=FormBorderStyle.FixedDialog,MaximizeBox=false,MinimizeBox=false,ShowInTaskbar=false,StartPosition=FormStartPosition.CenterParent,BackColor=Theme.Background,ForeColor=Theme.Text,Font=Font,AutoScaleMode=AutoScaleMode.Dpi,AutoScaleDimensions=new SizeF(96,96)}){
     help.Controls.Add(new BrandMark{Location=new Point(26,24),Size=new Size(40,40)});
     help.Controls.Add(new Label{Text="造梦工坊",Font=new Font(Font.FontFamily,16F,FontStyle.Bold),AutoSize=true,Location=new Point(79,23)});
-    help.Controls.Add(new Label{Text="0.6.0 · 造梦西游 3 在线版",ForeColor=Theme.Muted,AutoSize=true,Location=new Point(82,54)});
+    help.Controls.Add(new Label{Text=typeof(MainForm).Assembly.GetName().Version.ToString(3)+" · 造梦西游 3 在线版",ForeColor=Theme.Muted,AutoSize=true,Location=new Point(82,54)});
     help.Controls.Add(new Label{Text="多个页面，一个账号\n左侧新建页面会继承登录状态。A 保留声音，其余页面静音。关闭或刷新前，请先在游戏内保存进度。\n\n键盘连点\n点击按键框后直接按键，启用所需行，再按 F7 开始或停止。从上到下循环；间隔为松开按键后的等待时间。运行中修改，下次启动生效。\n\n快捷控制\n变速和连点设置由所有页面共享。切换页面会停止连点；F8 停止全部连点并恢复 1×。",Location=new Point(28,95),Size=new Size(394,272),Font=new Font(Font.FontFamily,9F)});
     var done=new StudioButton{Text="知道了",Primary=true,Bounds=new Rectangle(300,382,120,36),DialogResult=DialogResult.OK};help.Controls.Add(done);help.AcceptButton=done;help.CancelButton=done;help.ShowDialog(this);
    }

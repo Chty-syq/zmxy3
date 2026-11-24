@@ -15,7 +15,11 @@ namespace ZmxyDemo {
   protected override void OnKeyDown(KeyEventArgs e){Capture(e.KeyData);e.Handled=true;e.SuppressKeyPress=true;}
   protected override void OnKeyPress(KeyPressEventArgs e){e.Handled=true;}
   void Capture(Keys key){if((key&Keys.Modifiers)!=0||!KeyboardStep.KeyAllowed((int)(key&Keys.KeyCode)))return;SetKey((int)(key&Keys.KeyCode));KeyChanged?.Invoke();}
-  static string Label(int key){switch(key){case 32:return "空格";case 37:return "←";case 38:return "↑";case 39:return "→";case 40:return "↓";case 13:return "Enter";case 9:return "Tab";case 27:return "Esc";}return key>=112&&key<=123?"F"+(key-111):((char)key).ToString();}
+  static string Label(int key){
+   if(KeyboardStep.IsNumpadDigit(key)) return "小键盘 " + (key - (int)Keys.NumPad0);
+   switch(key){case 32:return "空格";case 37:return "←";case 38:return "↑";case 39:return "→";case 40:return "↓";case 13:return "Enter";case 9:return "Tab";case 27:return "Esc";}
+   return key>=112&&key<=123?"F"+(key-111):((char)key).ToString();
+  }
  }
  internal sealed class KeyboardSequenceEditor:UserControl {
   sealed class Row {
@@ -40,7 +44,7 @@ namespace ZmxyDemo {
    row.Key.Dock=DockStyle.Fill;row.Interval.Dock=DockStyle.Fill;keyFrame.Controls.Add(row.Key);intervalFrame.Controls.Add(row.Interval);
    row.Enabled.SetBounds(178,0,37,34);row.Remove.SetBounds(220,2,28,30);row.Remove.ForeColor=Theme.Muted;
    row.Key.SetKey(KeyboardStep.KeyAllowed(step.Key)?step.Key:83);row.Interval.Value=Math.Max(1,Math.Min(60000,step.IntervalMs));row.Enabled.Checked=step.Enabled;
-   tips.SetToolTip(row.Key,"点击后直接按下一个键；F7 / F8 为控制热键");tips.SetToolTip(row.Remove,"删除此行");
+   tips.SetToolTip(row.Key,"点击后直接按键。录入小键盘数字时请打开 Num Lock。F7 / F8 为控制热键。");tips.SetToolTip(row.Remove,"删除此行");
    row.Panel.Controls.AddRange(new Control[]{keyFrame,intervalFrame,row.Enabled,row.Remove});if(IsHandleCreated&&DeviceDpi!=96)row.Panel.Scale(new SizeF(DeviceDpi/96f,DeviceDpi/96f));list.Controls.Add(row.Panel);rows.Add(row);
    row.Key.KeyChanged+=OnChanged;row.Interval.ValueChanged+=(s,e)=>OnChanged();row.Enabled.CheckedChanged+=(s,e)=>OnChanged();
    row.Remove.Click+=(s,e)=>{rows.Remove(row);list.Controls.Remove(row.Panel);row.Panel.Dispose();LayoutRows();OnChanged();};return row;
