@@ -26,7 +26,7 @@ function install(profile, testFile) {
     const url = new URL(request.url);
     if (url.href === 'zmxy-test://local/test-page.html') {
       const html = fs.readFileSync(testFile, 'utf8').replace('</html>',
-        '<iframe title="Flash 时钟验证" width="140" height="32" src="zmxy-test://movie/clock.html"></iframe></html>');
+        '<iframe title="Flash 时钟验证" width="160" height="60" style="position:fixed;top:8px;right:8px;border:0" src="zmxy-test://movie/clock.html"></iframe></html>');
       return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
     }
     if (url.href === 'zmxy-test://movie/clock.html') {

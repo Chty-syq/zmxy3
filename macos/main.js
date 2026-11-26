@@ -7,6 +7,7 @@ const { GamePage, prepareSession, inheritLogin, httpURL } = require('./game');
 const { checkRows } = require('./input');
 
 const integration = process.argv.includes('--integration-test') || process.argv.includes('--self-test');
+const foregroundTest = integration && process.argv.includes('--foreground-test');
 const onlineSmoke = process.argv.includes('--online-smoke-test');
 const test = integration || process.argv.includes('--test-page');
 app.setName('造梦工坊');
@@ -30,7 +31,7 @@ const controls = { speed: 1, volume: 100, background: false, steps };
 let win, active, bounds, creating = false, capturing = false, quitting = false;
 let revision = 0, unavailable = [], hotkeys = new Set();
 const testLinks = [];
-if ((integration || onlineSmoke) && process.platform === 'darwin') app.setActivationPolicy('accessory');
+if (((integration && !foregroundTest) || onlineSmoke) && process.platform === 'darwin') app.setActivationPolicy('accessory');
 
 function trustedShell(event) {
   return win && event.sender === win.webContents && event.senderFrame === win.webContents.mainFrame
@@ -118,7 +119,7 @@ function toggle() {
   if (!active) return;
   if (active.input.run) active.input.stop();
   else if (!capturing && (win.isFocused() || controls.background)) {
-    if (win.isFocused()) active.web.focus();
+    if (win.isFocused() && !active.web.isFocused()) active.web.focus();
     try { active.input.start(controls.steps); active.status = '页面已加载'; }
     catch (error) { active.status = error.message; }
   }
@@ -222,7 +223,11 @@ async function start() {
   ]));
   if (!integration && !onlineSmoke) registerHotkeys();
   await win.loadFile(shellFile);
-  if (integration || onlineSmoke) win.showInactive();
+  if (foregroundTest) {
+    app.focus({ steal: true });
+    win.show();
+    win.focus();
+  } else if (integration || onlineSmoke) win.showInactive();
   else win.show();
   await add();
   if (integration) {

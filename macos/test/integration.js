@@ -64,8 +64,9 @@ async function run({ win, action, pages, active, testLinks }) {
   console.log('PASS key order, keypad location, emergency release');
 
   await action('steps', [{code:'KeyS', ms:30, enabled:true}]);
-  // Exercise focus inside the test movie without taking OS focus from another app.
-  await a.web.debugger.sendCommand('Emulation.setFocusEmulationEnabled', { enabled:true });
+  if (!win.isFocused()) {
+    await a.web.debugger.sendCommand('Emulation.setFocusEmulationEnabled', { enabled:true });
+  }
   await a.web.executeJavaScript("document.querySelector('iframe').scrollIntoView({block:'center', behavior:'instant'})");
   const frame = await a.web.executeJavaScript(`(() => {
     const element = document.querySelector('iframe');
@@ -74,8 +75,9 @@ async function run({ win, action, pages, active, testLinks }) {
   })()`);
   const player = await flash(`(() => {
     const element = document.querySelector('ruffle-embed');
-    element.focus();
-    const box = element.getBoundingClientRect();
+    const canvas = element.shadowRoot.querySelector('canvas');
+    canvas.focus({preventScroll:true});
+    const box = canvas.getBoundingClientRect();
     return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
   })()`);
   const point = { x: Math.round(frame.x + player.x), y: Math.round(frame.y + player.y) };

@@ -105,7 +105,7 @@ jobs:
           $log = Join-Path $env:RUNNER_TEMP 'zmxy-nsis.log'
           node scripts/package-windows.mjs artifacts/demo "$nsis" 2>&1 | Tee-Object $log
           if ($LASTEXITCODE -ne 0) {
-            Get-Content $log | Select-String 'Error|ENOENT|Cannot|not found|aborting' |
+            Get-Content $log | Select-String '^(Error|File:|!include:|Cannot|Usage:)|ENOENT|not found' |
               Select-Object -First 6 | ForEach-Object { Write-Output "::error::$($_.Line)" }
             exit 1
           }
@@ -134,6 +134,7 @@ jobs:
           Run-Checked $setup '/S'
           $exe = Join-Path $destination 'app\ZmxyDemo.exe'
           Run-Checked $exe '--self-test'
+          Start-Service Audiosrv
           Run-Checked $exe '--integration-test'
           $profile = Join-Path $env:LOCALAPPDATA 'ZmxyStudio\test-data'
           if (!(Test-Path $profile)) { throw 'Expected isolated installed profile' }

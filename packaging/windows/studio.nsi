@@ -2,6 +2,7 @@ Unicode true
 !include "MUI2.nsh"
 !include "x64.nsh"
 !include "LogicLib.nsh"
+!addincludedir "${MANIFEST}"
 
 Name "造梦工坊"
 OutFile "${OUTPUT}"
@@ -51,7 +52,7 @@ FunctionEnd
 
 Section
   SetShellVarContext current
-  !include "${MANIFEST}/install.nsh"
+  !include "install.nsh"
   FileOpen $0 "$INSTDIR\app\installed.flag" w
   FileClose $0
   WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -67,7 +68,7 @@ SectionEnd
 
 Section "Uninstall"
   SetShellVarContext current
-  !include "${MANIFEST}/uninstall.nsh"
+  !include "uninstall.nsh"
   Delete "$SMPROGRAMS\造梦工坊.lnk"
   DeleteRegKey HKCU "${UninstallKey}"
   Delete "$INSTDIR\Uninstall.exe"

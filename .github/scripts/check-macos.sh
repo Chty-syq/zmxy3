@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $# == 0 ]]; then
-  test_command=(npm --prefix macos test)
+  test_command=(npm --prefix macos test -- --foreground-test)
 else
   mount=$(mktemp -d)
   hdiutil attach "$1" -mountpoint "$mount" -nobrowse -readonly
@@ -11,7 +11,7 @@ else
   codesign --verify --deep --strict "$app"
   executable="$app/Contents/MacOS/造梦工坊"
   lipo "$executable" -verify_arch arm64 x86_64
-  test_command=("$executable" --integration-test)
+  test_command=("$executable" --integration-test --foreground-test)
 fi
 
 log="$RUNNER_TEMP/zmxy-macos-test.log"
