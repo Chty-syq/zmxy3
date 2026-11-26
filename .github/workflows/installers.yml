@@ -18,7 +18,7 @@ jobs:
     outputs:
       tag: ${{ steps.version.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Check the version of both installers
         id: version
         shell: python
@@ -49,25 +49,21 @@ jobs:
       run:
         working-directory: macos
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: macos/package-lock.json
       - run: npm ci
-      - run: npm test
+      - name: Test the Mac client
+        working-directory: .
+        run: bash .github/scripts/check-macos.sh
       - run: npm run dist
       - name: Check the application shipped in the disk image
-        run: |
-          mount=$(mktemp -d)
-          hdiutil attach ../artifacts/macos/*-universal.dmg -mountpoint "$mount" -nobrowse -readonly
-          trap 'hdiutil detach "$mount"' EXIT
-          app="$mount/造梦工坊.app"
-          codesign --verify --deep --strict "$app"
-          lipo "$app/Contents/MacOS/造梦工坊" -verify_arch arm64 x86_64
-          "$app/Contents/MacOS/造梦工坊" --integration-test
-      - uses: actions/upload-artifact@v4
+        working-directory: .
+        run: bash .github/scripts/check-macos.sh artifacts/macos/*-universal.dmg
+      - uses: actions/upload-artifact@v6
         with:
           name: ZmxyStudio-macOS
           path: artifacts/macos/*-universal.dmg
@@ -78,23 +74,20 @@ jobs:
     runs-on: macos-15-intel
     timeout-minutes: 10
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v7
         with:
           name: ZmxyStudio-macOS
       - name: Run the packaged Intel client
-        run: |
-          mount=$(mktemp -d)
-          hdiutil attach ./*.dmg -mountpoint "$mount" -nobrowse -readonly
-          trap 'hdiutil detach "$mount"' EXIT
-          "$mount/造梦工坊.app/Contents/MacOS/造梦工坊" --integration-test
+        run: bash .github/scripts/check-macos.sh ./*.dmg
 
   windows:
     needs: version
     runs-on: windows-2022
     timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
       - name: Build original x64 client and test the native clocks
@@ -104,8 +97,18 @@ jobs:
       - name: Build installer
         run: |
           $nsis = Join-Path ${env:ProgramFiles(x86)} 'NSIS\makensis.exe'
-          if (!(Test-Path $nsis)) { choco install nsis --yes --no-progress }
-          node scripts/package-windows.mjs artifacts/demo "$nsis"
+          if (!(Test-Path $nsis)) {
+            choco install nsis --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { throw 'Could not install NSIS' }
+            if (!(Test-Path $nsis)) { $nsis = (Get-Command makensis.exe -ErrorAction Stop).Source }
+          }
+          $log = Join-Path $env:RUNNER_TEMP 'zmxy-nsis.log'
+          node scripts/package-windows.mjs artifacts/demo "$nsis" 2>&1 | Tee-Object $log
+          if ($LASTEXITCODE -ne 0) {
+            Get-Content $log | Select-String 'Error|ENOENT|Cannot|not found|aborting' |
+              Select-Object -First 6 | ForEach-Object { Write-Output "::error::$($_.Line)" }
+            exit 1
+          }
       - name: Install, test the installed program, and uninstall
         run: |
           $ErrorActionPreference = 'Stop'
@@ -136,7 +139,7 @@ jobs:
           if (!(Test-Path $profile)) { throw 'Expected isolated installed profile' }
           Run-Checked "$destination\Uninstall.exe" "/S _?=$destination"
           if ((Test-Path $exe) -or !(Test-Path $profile)) { throw 'Uninstall did not preserve the profile or remove the executable' }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: ZmxyStudio-Windows-x64
           path: artifacts/windows/*-Setup.exe
@@ -152,12 +155,12 @@ jobs:
       group: publish-installers-${{ needs.version.outputs.tag }}
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v7
         with:
           name: ZmxyStudio-macOS
           path: dist
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: ZmxyStudio-Windows-x64
           path: dist

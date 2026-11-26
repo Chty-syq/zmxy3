@@ -64,18 +64,31 @@ async function run({ win, action, pages, active, testLinks }) {
   console.log('PASS key order, keypad location, emergency release');
 
   await action('steps', [{code:'KeyS', ms:30, enabled:true}]);
-  const point = await a.web.executeJavaScript(`(() => {
-    const frame = document.querySelector('iframe');
-    frame.scrollIntoView({block:'center'});
-    const box = frame.getBoundingClientRect();
-    return { x: Math.round(box.left + 22), y: Math.round(box.top + 18) };
-  })()`);
   // Exercise focus inside the test movie without taking OS focus from another app.
   await a.web.debugger.sendCommand('Emulation.setFocusEmulationEnabled', { enabled:true });
+  await a.web.executeJavaScript("document.querySelector('iframe').scrollIntoView({block:'center', behavior:'instant'})");
+  const frame = await a.web.executeJavaScript(`(() => {
+    const element = document.querySelector('iframe');
+    const box = element.getBoundingClientRect();
+    return { x: box.left + element.clientLeft, y: box.top + element.clientTop };
+  })()`);
+  const player = await flash(`(() => {
+    const element = document.querySelector('ruffle-embed');
+    element.focus();
+    const box = element.getBoundingClientRect();
+    return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+  })()`);
+  const point = { x: Math.round(frame.x + player.x), y: Math.round(frame.y + player.y) };
   await a.web.debugger.sendCommand('Input.dispatchMouseEvent', {type:'mousePressed', ...point, button:'left', clickCount:1});
   await a.web.debugger.sendCommand('Input.dispatchMouseEvent', {type:'mouseReleased', ...point, button:'left', clickCount:1});
   await action('toggle');
-  await until(() => flash('window.sawS'), 'Flash 子页面接收连点');
+  try {
+    await until(() => flash('window.sawS'), 'Flash 子页面接收连点');
+  } catch (error) {
+    console.error('Flash test focus', point, await a.web.executeJavaScript('document.activeElement.tagName'),
+      await flash('[document.hasFocus(), document.activeElement.tagName, document.activeElement.shadowRoot?.activeElement?.tagName, samples.length]'));
+    throw error;
+  }
   await action('stop');
   console.log('PASS ActionScript Key.isDown inside a cross-origin player');
 
