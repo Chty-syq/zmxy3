@@ -1,13 +1,48 @@
 name: Build installers
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish both installers to GitHub Releases after testing
+        type: boolean
+        default: false
   push:
+    branches: ['release/v*']
     tags: ['v*']
 permissions:
   contents: read
 
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the version of both installers
+        id: version
+        shell: python
+        run: |
+          import json, os, re
+          from pathlib import Path
+          from xml.etree import ElementTree
+
+          version = json.loads(Path('macos/package.json').read_text())['version']
+          lock = json.loads(Path('macos/package-lock.json').read_text())
+          windows = ElementTree.parse('src/ZmxyDemo/ZmxyDemo.csproj').findtext('.//Version')
+          if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', version) or any(
+              value != version for value in (windows, lock['version'], lock['packages']['']['version'])
+          ):
+              raise SystemExit('Windows, macOS and the npm lock file must share one numeric version')
+          tag = f'v{version}'
+          ref = os.environ['GITHUB_REF']
+          if ref.startswith(('refs/tags/', 'refs/heads/release/v')) and ref.rsplit('/', 1)[-1] != tag:
+              raise SystemExit(f'{ref} does not match the package version {tag}')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              print(f'tag={tag}', file=output)
+
   macos:
+    needs: version
     runs-on: macos-15
     timeout-minutes: 30
     defaults:
@@ -54,6 +89,7 @@ jobs:
           "$mount/造梦工坊.app/Contents/MacOS/造梦工坊" --integration-test
 
   windows:
+    needs: version
     runs-on: windows-2022
     timeout-minutes: 35
     steps:
@@ -79,7 +115,16 @@ jobs:
               $proc.Kill()
               throw "Timed out running $Exe $Argument"
             }
-            if ($proc.ExitCode -ne 0) { throw "$Exe exited with $($proc.ExitCode)" }
+            if ($proc.ExitCode -ne 0) {
+              if ($Argument -in '--self-test', '--integration-test') {
+                $report = Join-Path (Split-Path $Exe) ($Argument.TrimStart('-') + '-results.json')
+                if (Test-Path $report) {
+                  $failure = Get-Content -Raw $report | ConvertFrom-Json | Where-Object error | Select-Object -Last 1
+                  if ($failure) { Write-Output "::error::$($failure.error.Split([char]10)[0].Trim())" }
+                }
+              }
+              throw "$Exe exited with $($proc.ExitCode)"
+            }
           }
           $setup = (Get-ChildItem artifacts/windows/*-Setup.exe).FullName
           $destination = Join-Path $env:LOCALAPPDATA 'Programs\ZmxyStudio'
@@ -96,3 +141,29 @@ jobs:
           name: ZmxyStudio-Windows-x64
           path: artifacts/windows/*-Setup.exe
           if-no-files-found: error
+
+  release:
+    if: github.event_name == 'push' || inputs.publish
+    needs: [version, macos, macos-intel, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: publish-installers-${{ needs.version.outputs.tag }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: ZmxyStudio-macOS
+          path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: ZmxyStudio-Windows-x64
+          path: dist
+      - name: Publish both verified installers and their checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.version.outputs.tag }}
+        run: bash .github/scripts/publish-installers.sh

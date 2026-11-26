@@ -4,6 +4,8 @@ Windows 和 macOS 上的造梦西游 3 游戏工作台。两个客户端都打�
 
 ## 开始使用
 
+从 [GitHub Releases 下载造梦工坊](https://github.com/Chty-syq/zmxy3/releases)。展开对应版本的 **Assets**，Windows 选 `.exe`，Mac 选 `.dmg`。同页的 `SHA256SUMS.txt` 可用于校验下载。
+
 | 平台 | 安装与启动 |
 | --- | --- |
 | Windows 10/11 x64 | 运行 `ZmxyStudio-版本-Windows-x64-Setup.exe`，安装后从开始菜单打开“造梦工坊”。需要 .NET Framework 4.8、Visual C++ x64 运行库和官方 Flash PPAPI 64 位组件及配套服务。安装包从系统的 Flash 安装目录寻找插件。 |

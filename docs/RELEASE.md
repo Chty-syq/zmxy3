@@ -56,9 +56,15 @@ node scripts/package-windows.mjs artifacts/demo "$compiler"
 
 ## CI 和发版验收
 
-GitHub Actions 中的 **Build installers** 支持手动执行，也会响应 `v*` 标签。工作流构建两个安装包，运行 Windows 安装、原生自测、页面集成检查和卸载验证，并从已挂载的通用 DMG 在 Apple 芯片和 Intel runner 上分别启动测试。产物保存在该次运行的 Artifacts 中，公开发行可在签名验收后单独进行。
+在 GitHub 网页打开 [Build installers](https://github.com/Chty-syq/zmxy3/actions/workflows/installers.yml)，选择 **Run workflow** 和要构建的分支。默认只构建和验收，两个安装包可在本次运行的 **Artifacts** 下载。勾选 **Publish both installers to GitHub Releases after testing** 会在验收后自动创建版本标签并发布到 [Releases](https://github.com/Chty-syq/zmxy3/releases)。
 
-准备新版本时同步更新 `src/ZmxyDemo/ZmxyDemo.csproj` 与 `macos/package.json` 中的版本，并在 `macos/` 运行 `npm install --package-lock-only`。离线集成测试覆盖 A–D、新页面账号交接、按键顺序、小键盘、切页释放、音量、外链和 Flash 内部时钟。线上验收使用正式账号进入旧档地图。需要验证写回时，选择可用于测试的存档，保存后重新打开确认。
+也可从命令行发版。例如当前源码版本为 `0.6.1`，运行 `git push origin HEAD:refs/heads/release/v0.6.1` 即可开始。构建失败时可修复后继续推送此分支。已有版本标签的项目也支持用 `git push origin v0.6.1` 触发。新版本须同步更新 `src/ZmxyDemo/ZmxyDemo.csproj` 与 `macos/package.json`，并在 `macos/` 运行 `npm install --package-lock-only`。工作流会核对两端的版本号、锁文件和发布分支或标签名。
+
+Windows 在安装后的程序上运行原生自测和页面集成检查，并验证卸载保留用户资料。Mac 在 Apple 芯片和 Intel 机器上分别挂载同一份通用 DMG 并启动测试。全部通过后，工作流把这次生成的 `.exe`、`.dmg` 和 `SHA256SUMS.txt` 上传到 Release 草稿，核对 GitHub 返回的三个文件摘要，再公开下载。已公开版本保留原有附件。发布使用 GitHub 自带的工作流令牌。
+
+自动发布的 Mac 应用使用临时签名，未经 Apple 公证，Windows 安装包未做 Authenticode 签名。玩家可以在 macOS 上用 `shasum -a 256 文件名.dmg`，或在 Windows PowerShell 中用 `Get-FileHash 文件名.exe -Algorithm SHA256`，与发布页的 `SHA256SUMS.txt` 对照。
+
+离线集成测试覆盖 A–D、新页面账号交接、按键顺序、小键盘、切页释放、音量、外链和 Flash 内部时钟。线上验收使用正式账号进入旧档地图。需要验证写回时，选择可用于测试的存档，保存后重新打开确认。
 
 ### 2026-11-25 本地验收
 
