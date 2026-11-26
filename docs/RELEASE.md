@@ -60,7 +60,7 @@ node scripts/package-windows.mjs artifacts/demo "$compiler"
 
 也可从命令行发版。例如当前源码版本为 `0.6.1`，运行 `git push origin HEAD:refs/heads/release/v0.6.1` 即可开始。构建失败时可修复后继续推送此分支。已有版本标签的项目也支持用 `git push origin v0.6.1` 触发。新版本须同步更新 `src/ZmxyDemo/ZmxyDemo.csproj` 与 `macos/package.json`，并在 `macos/` 运行 `npm install --package-lock-only`。工作流会核对两端的版本号、锁文件和发布分支或标签名。
 
-Windows 在安装后的程序上运行原生自测和页面集成检查，并验证卸载保留用户资料。Mac 在 Apple 芯片和 Intel 机器上分别挂载同一份通用 DMG 并启动测试。全部通过后，工作流把这次生成的 `.exe`、`.dmg` 和 `SHA256SUMS.txt` 上传到 Release 草稿，核对 GitHub 返回的三个文件摘要，再公开下载。已公开版本保留原有附件。发布使用 GitHub 自带的工作流令牌。
+Windows 在安装后的程序上运行原生自测和页面集成检查，并验证卸载保留用户资料。云端 Windows 缺少播放设备时，会在临时测试机上安装 VB-CABLE，用 Windows 音频会话实测音量和静音。Mac 在 Apple 芯片和 Intel 机器上分别挂载同一份通用 DMG 并启动测试。全部通过后，工作流把这次生成的 `.exe`、`.dmg` 和 `SHA256SUMS.txt` 上传到 Release 草稿，核对 GitHub 返回的三个文件摘要，再公开下载。已公开版本保留原有附件。发布使用 GitHub 自带的工作流令牌。
 
 自动发布的 Mac 应用使用临时签名，未经 Apple 公证，Windows 安装包未做 Authenticode 签名。玩家可以在 macOS 上用 `shasum -a 256 文件名.dmg`，或在 Windows PowerShell 中用 `Get-FileHash 文件名.exe -Algorithm SHA256`，与发布页的 `SHA256SUMS.txt` 对照。
 

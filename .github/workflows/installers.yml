@@ -109,6 +109,8 @@ jobs:
               Select-Object -First 6 | ForEach-Object { Write-Output "::error::$($_.Line)" }
             exit 1
           }
+      - name: Prepare a playback device for the native volume tests
+        run: ./.github/scripts/prepare-test-audio.ps1
       - name: Install, test the installed program, and uninstall
         run: |
           $ErrorActionPreference = 'Stop'
@@ -134,7 +136,6 @@ jobs:
           Run-Checked $setup '/S'
           $exe = Join-Path $destination 'app\ZmxyDemo.exe'
           Run-Checked $exe '--self-test'
-          Start-Service Audiosrv
           Run-Checked $exe '--integration-test'
           $profile = Join-Path $env:LOCALAPPDATA 'ZmxyStudio\test-data'
           if (!(Test-Path $profile)) { throw 'Expected isolated installed profile' }
