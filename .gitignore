@@ -8,3 +8,5 @@ runtime/
 **/obj/
 native/vendor/
 *.user
+macos/node_modules/
+macos/.generated/

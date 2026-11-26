@@ -70,7 +70,10 @@ namespace ZmxyDemo {
    var shortcuts=new Label{Text="F7  开始 / 停止连点     ·     F8  停止并恢复 1×",Dock=DockStyle.Right,Width=380,TextAlign=ContentAlignment.MiddleRight,ForeColor=Theme.Muted,Font=new Font(Font.FontFamily,8F)};footer.Controls.Add(shortcuts);
    status.Dock=DockStyle.Fill;status.ForeColor=Theme.Muted;status.TextAlign=ContentAlignment.MiddleLeft;status.AutoEllipsis=true;status.Font=new Font(Font.FontFamily,8F);footer.Controls.Add(status);status.BringToFront();layout.Controls.Add(footer,0,2);
    stage.Resize+=async(s,e)=>{if(active!=null)await active.ResizeAsync();};
-   Shown+=async(s,e)=>{RegisterControls();timer.Start();await AddPageUiAsync();if(Program.IntegrationTest)await IntegrationTests.RunAsync(this);};
+   Shown+=async(s,e)=>{RegisterControls();timer.Start();await AddPageUiAsync();
+    if(!Program.IsolatedTest&&Program.FlashPath==null)
+     MessageBox.Show(this,"当前打开的是输入验证页。要运行游戏，请从 Flash 中国官网安装 64 位 PPAPI 版和配套服务，然后重新启动造梦工坊。","缺少 Flash 播放器",MessageBoxButtons.OK,MessageBoxIcon.Information);
+    if(Program.IntegrationTest)await IntegrationTests.RunAsync(this);};
    timer.Tick+=(s,e)=>{RegisterControls();UpdateStatus();};
    Deactivate+=async(s,e)=>{if(!closing&&!background.Checked&&GetAncestor(GetForegroundWindow(),2)!=Handle)await StopAllInputsAsync();};
    FormClosing+=async(s,e)=>{if(canClose)return;e.Cancel=true;if(closing)return;closing=true;timer.Stop();Enabled=false;await Task.Yield();

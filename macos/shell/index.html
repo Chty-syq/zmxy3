@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'">
+  <title>造梦工坊</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="shell.js" defer></script>
+</head>
+<body>
+  <header>
+    <img src="mark.png" alt="" width="38" height="38">
+    <h1>造梦工坊</h1>
+    <button id="help">使用说明</button>
+    <button id="stop">全部停止 <kbd>F8</kbd></button>
+  </header>
+  <main>
+    <aside>
+      <section>
+        <h2>游戏页面 <small id="count">0 / 4</small></h2>
+        <div id="tabs"></div>
+        <button id="add" class="wide">＋ 新建同账号页面</button>
+      </section>
+      <section>
+        <h2>变速齿轮 <small>全部页面</small></h2>
+        <div id="speeds" aria-label="游戏速度">
+          <button data-rate="1">1×</button><button data-rate="2">2×</button>
+          <button data-rate="3">3×</button><button data-rate="100">100×</button>
+        </div>
+      </section>
+      <section>
+        <h2>键盘连点 <small>当前页面</small></h2>
+        <div class="columns muted"><span>按键</span><span>间隔 · ms</span><span>启用</span><span></span></div>
+        <div id="steps"></div>
+        <button id="add-key" class="wide">＋ 添加按键</button>
+        <label class="background"><input id="background" type="checkbox">切到其他应用时继续</label>
+        <button id="toggle" class="primary wide"><span>开始连点</span> <kbd>F7</kbd></button>
+      </section>
+      <section>
+        <h2><label for="volume">游戏音量</label> <small id="volume-label">100%</small></h2>
+        <input id="volume" type="range" min="0" max="100" step="1" value="100">
+        <p>仅页面 A 播放声音</p>
+      </section>
+    </aside>
+    <article>
+      <nav><h2 id="title">造梦西游 3</h2><span id="page-label"></span><button id="home">进入游戏</button><button id="refresh">刷新</button></nav>
+      <div id="stage"></div>
+    </article>
+  </main>
+  <footer role="status" aria-live="polite"><span id="status">正在启动…</span><span id="shortcuts"></span></footer>
+</body>
+</html>

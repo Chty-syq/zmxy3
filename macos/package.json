@@ -1,0 +1,42 @@
+{
+  "name": "zmxy-studio",
+  "productName": "造梦工坊",
+  "version": "0.6.1",
+  "description": "造梦西游 3 在线游戏工作台",
+  "author": "造梦工坊",
+  "private": true,
+  "main": "main.js",
+  "engines": { "node": ">=22.12.0" },
+  "scripts": {
+    "prepare:player": "node scripts/prepare-player.js",
+    "prestart": "npm run prepare:player",
+    "start": "electron .",
+    "pretest": "npm run prepare:player",
+    "test": "electron . --integration-test",
+    "predist": "npm run prepare:player",
+    "dist": "electron-builder --mac dmg --universal --publish never -c.mac.identity=-",
+    "predist:signed": "npm run prepare:player",
+    "dist:signed": "electron-builder --mac dmg --universal --publish never -c.forceCodeSigning=true -c.mac.notarize=true"
+  },
+  "devDependencies": {
+    "@ruffle-rs/ruffle": "0.8.0",
+    "electron": "45.5.0",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "com.zmxy.workbench",
+    "artifactName": "ZmxyStudio-${version}-macOS-${arch}.${ext}",
+    "directories": { "output": "../artifacts/macos" },
+    "files": ["*.js", "shell/**", "test/**"],
+    "extraResources": [
+      { "from": ".generated/player", "to": "player" },
+      { "from": "../test-page.html", "to": "test-page.html" }
+    ],
+    "mac": {
+      "category": "public.app-category.games",
+      "icon": "build/icon.icns",
+      "hardenedRuntime": true
+    },
+    "dmg": { "sign": false }
+  }
+}

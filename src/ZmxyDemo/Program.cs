@@ -13,14 +13,34 @@ namespace ZmxyDemo {
   public static readonly string GameUrl="https://www.4399.com/flash/zmhj.htm?g=3";
   public static string TestUrl=>new Uri(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"test-page.html")).AbsoluteUri;
   public static string Option(string[] args,string key,string fallback=null){int i=Array.IndexOf(args,key);return i>=0&&i+1<args.Length?args[i+1]:fallback;}
+  internal static string FindFlash() {
+   var baseDir=AppDomain.CurrentDomain.BaseDirectory;
+   if(!File.Exists(Path.Combine(baseDir,"installed.flag"))) {
+    var portable=new[]{Path.Combine(baseDir,"runtime","pepflashplayer.dll"),Path.GetFullPath(Path.Combine(baseDir,"..","..","runtime","pepflashplayer.dll"))}.FirstOrDefault(File.Exists);
+    if(portable!=null)return portable;
+   }
+   // Use the system installation for the packaged client. Side-by-side versions
+   // are named pepflashplayer64_34_0_0_384.dll, etc.
+   var directory=Path.Combine(Environment.SystemDirectory,"Macromed","Flash");
+   const string prefix="pepflashplayer64_";
+   try {
+    if(!Directory.Exists(directory))return null;
+    return Directory.EnumerateFiles(directory,prefix+"*.dll")
+     .OrderByDescending(file=>Version.TryParse(Path.GetFileNameWithoutExtension(file).Substring(prefix.Length).Replace('_','.'),out var version)?version:new Version())
+     .FirstOrDefault();
+   }catch(IOException){return null;}catch(UnauthorizedAccessException){return null;}
+  }
   [STAThread] public static int Main(string[] args){
    if(args.Contains("--self-test"))return SelfTests.Run();
    TestPage=args.Contains("--test-page");SoftwareRendering=args.Contains("--software-rendering");IntegrationTest=args.Contains("--integration-test");
    AutoPerformanceCapture=args.Contains("--performance-capture");
    PerformanceCompare=args.Contains("--performance-compare");
    WebAccessibility=args.Contains("--enable-web-accessibility");
-   DataRoot=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,IsolatedTest?"test-data":"data");Directory.CreateDirectory(DataRoot);
-   FlashPath=new[]{Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"runtime","pepflashplayer.dll"),Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"..","..","runtime","pepflashplayer.dll"))}.FirstOrDefault(File.Exists);
+   var baseDir=AppDomain.CurrentDomain.BaseDirectory;
+   var profileRoot=File.Exists(Path.Combine(baseDir,"installed.flag"))
+    ?Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"ZmxyStudio"):baseDir;
+   DataRoot=Path.Combine(profileRoot,IsolatedTest?"test-data":"data");Directory.CreateDirectory(DataRoot);
+   FlashPath=FindFlash();
    Cef.EnableHighDPISupport();Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);
    if(args.Contains("--worker"))return RunWorker(args);
    bool created;using(var mutex=new Mutex(true,IsolatedTest?"Local\\ZmxyDemo-TestShell":"Local\\ZmxyDemo-Shell",out created)){

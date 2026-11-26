@@ -10,4 +10,6 @@
 | Zig | 0.13.0，构建工具 | https://ziglang.org/ | 下载目录包含原厂许可文件 |
 | Flash Player PPAPI | 34.0.0.384 | https://www.flash.cn/ | 专有组件，适用原厂条款；未授予随本项目再分发的许可 |
 
-本地 `runtime/` 和构建目录不纳入源码版本控制。该清单用于本地 Demo，公开发布前必须补全 Chromium 等传递依赖 notices 并核实运行时分发条件。
+本地 `runtime/` 和构建目录不纳入源码版本控制。Windows 安装包另附从当前 CEF 的 `cef.pak` 提取的完整 `Chromium-credits.html`，仅使用另行安装的官方 Flash。
+
+macOS 客户端使用 Electron 45.5.0 和 Ruffle 0.8.0。应用包的 `Contents/Resources` 内包含 Electron 许可及 Chromium notices，`player/` 内包含 Ruffle 随包提供的 MIT、Apache 2.0 许可和本项目时钟适配说明。游戏内容由 4399 在线提供。
